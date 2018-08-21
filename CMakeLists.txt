@@ -25,8 +25,5 @@ else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
-add_executable(pcl pcl.cpp)
-target_link_libraries(pcl ${PCL_LIBRARIES})
-
 add_executable(sgbm sgbm.cpp ${LIBELAS_SRC_FILES})
 target_link_libraries(sgbm ${PCL_LIBRARIES} ${OpenCV_LIBS})
