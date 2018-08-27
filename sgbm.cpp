@@ -5,7 +5,7 @@
 #include <opencv2/opencv.hpp>  
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/voxel_grid.h>
-#include "elas.h"
+
 #include <time.h>
 #include <math.h>
 #include <fstream>
@@ -14,14 +14,14 @@ using namespace std;
 using namespace pcl;
 typedef PointXYZRGB PointT; 
 Size calib_img_size ;
-  Rect validRoi[2];
+Rect validRoi[2];
 int user_data;
 Mat Q;
 clock_t start, finish; 
 Mat K1 = Mat::zeros(3,3, CV_32F); 
-  Mat K2 ;
-  Mat D1 ;
-  Mat D2 ;
+Mat K2 ;
+Mat D1 ;
+Mat D2 ;
 
 Mat lmapx, lmapy, rmapx, rmapy;
 double length;
@@ -141,54 +141,54 @@ void pp_callback(const pcl::visualization::PointPickingEvent& event, void* args)
 
 cv::Mat toCvMatInverse(const cv::Mat &Tcw)
 {
-  cv::Mat Rcw = Tcw.rowRange(0,3).colRange(0,3);
-  cv::Mat tcw = Tcw.rowRange(0,3).col(3);
-  cv::Mat Rwc = Rcw.t();
-  cv::Mat twc = -Rwc*tcw;
+    cv::Mat Rcw = Tcw.rowRange(0,3).colRange(0,3);
+    cv::Mat tcw = Tcw.rowRange(0,3).col(3);
+    cv::Mat Rwc = Rcw.t();
+    cv::Mat twc = -Rwc*tcw;
 
-  cv::Mat Twc = cv::Mat::eye(4,4,Tcw.type());
-  Rwc.copyTo(Twc.rowRange(0,3).colRange(0,3));
-  twc.copyTo(Twc.rowRange(0,3).col(3));
+    cv::Mat Twc = cv::Mat::eye(4,4,Tcw.type());
+    Rwc.copyTo(Twc.rowRange(0,3).colRange(0,3));
+    twc.copyTo(Twc.rowRange(0,3).col(3));
 
-  return Twc.clone();
+    return Twc.clone();
 }
 
 void findRectificationMap(FileStorage& calib_file) 
 {
-  Rect validRoi[2];
-  cout << "Starting rectification" << endl;
-  Mat TSC1 ;
-  Mat TSC2;
-  
-  Mat P1, P2;
-  Mat R1, R2;
-  
-  Mat R;
-  Vec3d T;
+    Rect validRoi[2];
+    cout << "Starting rectification" << endl;
+    Mat TSC1 ;
+    Mat TSC2;
 
-  calib_file["M1"] >> K1;
-  calib_file["M2"] >> K2;
-  calib_file["D1"] >> D1;
-  calib_file["D2"] >> D2;
-  //calib_file["TSC1"] >> TSC1;
-  calib_file["R"] >> R;
-  calib_file["T"] >> T;
-  //calib_file["TSC1"] >> TSC1;
-  //calib_file["TSC2"] >> TSC2;
-  int x,y;
-  calib_file["x"] >> x;
-  calib_file["y"] >> y;
-  calib_img_size = Size(x, y);
-  //Mat TT = toCvMatInverse(TSC2)*TSC1;
-  //cv::Mat Rcw = TT.rowRange(0,3).colRange(0,3);
-  //cv::Mat tcw = TT.rowRange(0,3).col(3);
-  //length = sqrt(tcw.at<double>(0,0)*tcw.at<double>(0,0) + tcw.at<double>(0,1)*tcw.at<double>(0,1) + tcw.at<double>(0,2)*tcw.at<double>(0,2));
-  Size finalSize = calib_img_size;
-  stereoRectify(K1, D1, K2, D2, calib_img_size, R, T, R1, R2, P1, P2, Q, 
-                CV_CALIB_ZERO_DISPARITY, 0, finalSize, &validRoi[0], &validRoi[1]);
-  cv::initUndistortRectifyMap(K1, D1, R1, P1, finalSize, CV_32F, lmapx, lmapy);
-  cv::initUndistortRectifyMap(K2, D2, R2, P2, finalSize, CV_32F, rmapx, rmapy);
-  cout << "Done rectification" << endl;
+    Mat P1, P2;
+    Mat R1, R2;
+
+    Mat R;
+    Vec3d T;
+
+    calib_file["M1"] >> K1;
+    calib_file["M2"] >> K2;
+    calib_file["D1"] >> D1;
+    calib_file["D2"] >> D2;
+    //calib_file["TSC1"] >> TSC1;
+    calib_file["R"] >> R;
+    calib_file["T"] >> T;
+    //calib_file["TSC1"] >> TSC1;
+    //calib_file["TSC2"] >> TSC2;
+    int x,y;
+    calib_file["x"] >> x;
+    calib_file["y"] >> y;
+    calib_img_size = Size(x, y);
+    //Mat TT = toCvMatInverse(TSC2)*TSC1;
+    //cv::Mat Rcw = TT.rowRange(0,3).colRange(0,3);
+    //cv::Mat tcw = TT.rowRange(0,3).col(3);
+    //length = sqrt(tcw.at<double>(0,0)*tcw.at<double>(0,0) + tcw.at<double>(0,1)*tcw.at<double>(0,1) + tcw.at<double>(0,2)*tcw.at<double>(0,2));
+    Size finalSize = calib_img_size;
+    stereoRectify(K1, D1, K2, D2, calib_img_size, R, T, R1, R2, P1, P2, Q, 
+                  CV_CALIB_ZERO_DISPARITY, 0, finalSize, &validRoi[0], &validRoi[1]);
+    cv::initUndistortRectifyMap(K1, D1, R1, P1, finalSize, CV_32F, lmapx, lmapy);
+    cv::initUndistortRectifyMap(K2, D2, R2, P2, finalSize, CV_32F, rmapx, rmapy);
+    cout << "Done rectification" << endl;
 }
 
 void viewerOneOff(visualization::PCLVisualizer& viewer)
@@ -200,7 +200,7 @@ void viewerOneOff(visualization::PCLVisualizer& viewer)
 int main()
 {
     FileStorage calib_file = FileStorage("/home/l/tt/dashuixing.yml", FileStorage::READ);
-      findRectificationMap(calib_file);
+    findRectificationMap(calib_file);
     Mat leftc =  imread( "/home/l/orbshuju/l/1.png");  
     Mat rightc = imread( "/home/l/orbshuju/r/1.png");
     Size img_size = leftc.size();
@@ -260,7 +260,7 @@ int main()
     imshow("rectified", canvas);
 
 
-  cvWaitKey(0);
+    cvWaitKey(0);
 
 
 
@@ -295,26 +295,26 @@ int main()
     char aaa = -1;
 
     cout<<"16S:"<<(double)absdisp.ptr<char>(100)[400]<<"tt"<<abs(aaa)<<endl;
-//Mat leftdpf = disp;
+    //Mat leftdpf = disp;
 
-Mat leftdpf = Mat::zeros(img_size, CV_8UC1);
-cout<<"numberOfDisparities"<<numberOfDisparities<<endl;
-absdisp.convertTo(leftdpf, CV_8U, 255/(numberOfDisparities*16.));
+    Mat leftdpf = Mat::zeros(img_size, CV_8UC1);
+    cout<<"numberOfDisparities"<<numberOfDisparities<<endl;
+    absdisp.convertTo(leftdpf, CV_8U, 255/(numberOfDisparities*16.));
 
 
-/*
-Mat mat32f,mat8u;
-leftdpf.convertTo(mat32f,CV_32F,1.0/255.0);
-insertDepth32f(mat32f);
-mat32f.convertTo(mat8u,CV_8U,255.0);
-leftdpf = mat8u;
-*/
-  imwrite("leftdpf.png",leftdpf);
-    //disp2Depth(leftdpf,depth);
-cout<<"8U"<<(double)leftdpf.ptr<uchar>(100)[400]<<endl;
+    /*
+    Mat mat32f,mat8u;
+    leftdpf.convertTo(mat32f,CV_32F,1.0/255.0);
+    insertDepth32f(mat32f);
+    mat32f.convertTo(mat8u,CV_8U,255.0);
+    leftdpf = mat8u;
+    */
+      imwrite("leftdpf.png",leftdpf);
+        //disp2Depth(leftdpf,depth);
+    cout<<"8U"<<(double)leftdpf.ptr<uchar>(100)[400]<<endl;
 
-PointCloud<PointXYZRGB>::Ptr cloud_a(new PointCloud<PointXYZRGB>);
-PointCloud<PointXYZRGB> cloud_b;
+    PointCloud<PointXYZRGB>::Ptr cloud_a(new PointCloud<PointXYZRGB>);
+    PointCloud<PointXYZRGB> cloud_b;
     PointCloud<PointXYZRGB>::Ptr cloud(new PointCloud<PointXYZRGB>);
     int rowNumber = left.rows;
     int colNumber = left.cols;
@@ -346,8 +346,8 @@ PointCloud<PointXYZRGB> cloud_b;
             pos = Q * V; // 3D homogeneous coordinate
 
             double X = pos.at<double>(0,0) / pos.at<double>(3,0);
-    	    double Y = pos.at<double>(1,0) / pos.at<double>(3,0);
-    	    double Z = pos.at<double>(2,0) / pos.at<double>(3,0);
+    	      double Y = pos.at<double>(1,0) / pos.at<double>(3,0);
+    	      double Z = pos.at<double>(2,0) / pos.at<double>(3,0);
             if(Z>10)
                 continue;
             
