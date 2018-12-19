@@ -1,3 +1,4 @@
+//by shuishui shiwenjun 20160926
 #include <pcl/visualization/cloud_viewer.h>
 #include <iostream>  
 #include <pcl/io/io.h>  
@@ -5,7 +6,7 @@
 #include <opencv2/opencv.hpp>  
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/voxel_grid.h>
-
+#include "elas.h"
 #include <time.h>
 #include <math.h>
 #include <fstream>
@@ -23,7 +24,9 @@ Mat K2 ;
 Mat D1 ;
 Mat D2 ;
 
+//相机内参，根据输入改动
 Mat lmapx, lmapy, rmapx, rmapy;
+
 double length;
 struct callback_args
 {  
@@ -31,95 +34,6 @@ struct callback_args
     pcl::PointCloud<PointT>::Ptr clicked_points_3d;  
     pcl::visualization::PCLVisualizer::Ptr viewerPtr;  
 };  
-
-void insertDepth32f(cv::Mat& depth)
-{
-    const int width = depth.cols;
-    const int height = depth.rows;
-    float* data = (float*)depth.data;
-    cv::Mat integralMap = cv::Mat::zeros(height, width, CV_64F);
-    cv::Mat ptsMap = cv::Mat::zeros(height, width, CV_32S);
-    double* integral = (double*)integralMap.data;
-    int* ptsIntegral = (int*)ptsMap.data;
-    memset(integral, 0, sizeof(double) * width * height);
-    memset(ptsIntegral, 0, sizeof(int) * width * height);
-    for (int i = 0; i < height; ++i)
-    {
-        int id1 = i * width;
-        for (int j = 0; j < width; ++j)
-        {
-            int id2 = id1 + j;
-            if (data[id2] > 1e-3)
-            {
-                integral[id2] = data[id2];
-                ptsIntegral[id2] = 1;
-            }
-        }
-    }
-    // 积分区间
-    for (int i = 0; i < height; ++i)
-    {
-        int id1 = i * width;
-        for (int j = 1; j < width; ++j)
-        {
-            int id2 = id1 + j;
-            integral[id2] += integral[id2 - 1];
-            ptsIntegral[id2] += ptsIntegral[id2 - 1];
-        }
-    }
-    for (int i = 1; i < height; ++i)
-    {
-        int id1 = i * width;
-        for (int j = 0; j < width; ++j)
-        {
-            int id2 = id1 + j;
-            integral[id2] += integral[id2 - width];
-            ptsIntegral[id2] += ptsIntegral[id2 - width];
-        }
-    }
-    int wnd;
-    double dWnd = 2;
-    while (dWnd > 1)
-    {
-        wnd = int(dWnd);
-        dWnd /= 2;
-        for (int i = 0; i < height; ++i)
-        {
-            int id1 = i * width;
-            for (int j = 0; j < width; ++j)
-            {
-                int id2 = id1 + j;
-                int left = j - wnd - 1;
-                int right = j + wnd;
-                int top = i - wnd - 1;
-                int bot = i + wnd;
-                left = max(0, left);
-                right = min(right, width - 1);
-                top = max(0, top);
-                bot = min(bot, height - 1);
-                int dx = right - left;
-                int dy = (bot - top) * width;
-                int idLeftTop = top * width + left;
-                int idRightTop = idLeftTop + dx;
-                int idLeftBot = idLeftTop + dy;
-                int idRightBot = idLeftBot + dx;
-                int ptsCnt = ptsIntegral[idRightBot] + ptsIntegral[idLeftTop] - (ptsIntegral[idLeftBot] + ptsIntegral[idRightTop]);
-                double sumGray = integral[idRightBot] + integral[idLeftTop] - (integral[idLeftBot] + integral[idRightTop]);
-                if (ptsCnt <= 0)
-                {
-                    continue;
-                }
-                data[id2] = float(sumGray / ptsCnt);
-            }
-        }
-        int s = wnd / 2 * 2 + 1;
-        if (s > 201)
-        {
-            s = 201;
-        }
-        cv::GaussianBlur(depth, depth, cv::Size(s, s), s, s);
-    }
-}
 
 void pp_callback(const pcl::visualization::PointPickingEvent& event, void* args)  
 {  
@@ -159,10 +73,10 @@ void findRectificationMap(FileStorage& calib_file)
     cout << "Starting rectification" << endl;
     Mat TSC1 ;
     Mat TSC2;
-
+    
     Mat P1, P2;
     Mat R1, R2;
-
+    
     Mat R;
     Vec3d T;
 
@@ -199,10 +113,10 @@ void viewerOneOff(visualization::PCLVisualizer& viewer)
 
 int main()
 {
-    FileStorage calib_file = FileStorage("/home/l/tt/dashuixing.yml", FileStorage::READ);
-    findRectificationMap(calib_file);
-    Mat leftc =  imread( "/home/l/orbshuju/l/1.png");  
-    Mat rightc = imread( "/home/l/orbshuju/r/1.png");
+    FileStorage calib_file = FileStorage("/home/l/tt/3dre/huacexiangji.yml", FileStorage::READ);
+      findRectificationMap(calib_file);
+    Mat leftc =  imread( "/home/l/tt/3dre/SampleDataWithPOS/SampleDataWithPOS/l/3.jpg");  
+    Mat rightc = imread( "/home/l/tt/3dre/SampleDataWithPOS/SampleDataWithPOS/r/3.jpg");
     Size img_size = leftc.size();
     Mat disp;
 
@@ -217,17 +131,12 @@ int main()
     把校正结果显示出来
     */
     Mat rectifyImageL, rectifyImageR;
-    cvtColor(leftc,rectifyImageL,CV_BGR2GRAY);  //伪彩色图
+    cvtColor(rgbRectifyImageL,rectifyImageL,  CV_BGR2GRAY);  //伪彩色图
     cvtColor(rgbRectifyImageR,rectifyImageR,  CV_BGR2GRAY);
 
-    //单独显示
-    //rectangle(rgbRectifyImageL, validROIL, Scalar(0, 0, 255), 3, 8);
-    //rectangle(rgbRectifyImageR, validROIR, Scalar(0, 0, 255), 3, 8);
-    //imshow("ImageL After Rectify", rgbRectifyImageL);
-    //imshow("ImageR After Rectify", rgbRectifyImageR);
     Mat left =  leftc;//rectifyImageL;
     Mat right = rightc;//rectifyImageR;
-    Mat color = rectifyImageL;
+    Mat color = leftc;
 
     //显示在同一张图上
     Mat canvas;
@@ -240,7 +149,7 @@ int main()
 
     //左图像画到画布上
     Mat canvasPart = canvas(Rect(w * 0, 0, w, h));                                //得到画布的一部分  
-    resize(leftc, canvasPart, canvasPart.size(), 0, 0, INTER_AREA);     //把图像缩放到跟canvasPart一样大小  
+    resize(left, canvasPart, canvasPart.size(), 0, 0, INTER_AREA);     //把图像缩放到跟canvasPart一样大小  
     Rect vroiL(cvRound(validRoi[0].x*sf), cvRound(validRoi[0].y*sf),                //获得被截取的区域    
         cvRound(validRoi[0].width*sf), cvRound(validRoi[0].height*sf));
     //rectangle(canvasPart, vroiL, Scalar(0, 0, 255), 3, 8);                      //画上一个矩形  
@@ -248,7 +157,7 @@ int main()
 
     //右图像画到画布上
     canvasPart = canvas(Rect(w, 0, w, h));                                      //获得画布的另一部分  
-    resize(rightc, canvasPart, canvasPart.size(), 0, 0, INTER_LINEAR);
+    resize(right, canvasPart, canvasPart.size(), 0, 0, INTER_LINEAR);
     Rect vroiR(cvRound(validRoi[1].x * sf), cvRound(validRoi[1].y*sf),
         cvRound(validRoi[1].width * sf), cvRound(validRoi[1].height * sf));
     //rectangle(canvasPart, vroiR, Scalar(0, 0, 255), 3, 8);
@@ -257,61 +166,51 @@ int main()
     //画上对应的线条
     for (int i = 0; i < canvas.rows; i += 16)
         line(canvas, Point(0, i), Point(canvas.cols, i), Scalar(0, 255, 0), 1, 8);
+    cv::namedWindow("rectified", CV_WINDOW_NORMAL);
     imshow("rectified", canvas);
 
 
     cvWaitKey(0);
 
+    int numberOfDisparities,convertint,PreFilterCap,sgbmWinSize,SpeckleWindowSize,SpeckleRange,setDisp12MaxDiff,min,max,maxl,minl;
+    int p1,p2;
+    double UniquenessRatio;
+    calib_file["numberOfDisparities"] >> numberOfDisparities;
+    calib_file["UniquenessRatio"] >> UniquenessRatio;
+    calib_file["sgbmWinSize"] >> sgbmWinSize;
+    calib_file["SpeckleWindowSize"] >> SpeckleWindowSize;
+    calib_file["SpeckleRange"] >> SpeckleRange;
+    calib_file["setDisp12MaxDiff"] >> setDisp12MaxDiff;
+    calib_file["min"] >> min;
+    calib_file["max"] >> max;
+    calib_file["maxl"] >> maxl;
+    calib_file["minl"] >> minl;
+    calib_file["PreFilterCap"] >> PreFilterCap;
+    calib_file["convertint"] >> convertint;
+    calib_file["p1"] >> p1;
+    calib_file["p2"] >> p2;
 
-
-
-      
-    int numberOfDisparities = 256;//((left.rows / 8) +15) & -16;
-    cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(0, 16, 3);
-
+    //int numberOfDisparities = numberOfDisparities;//((left.rows / 8) +15) & -16;
+    cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(min, max);
     sgbm->setPreFilterCap(12);
-
-    int sgbmWinSize = 5;
+    //int sgbmWinSize = sgbmWinSize;
     sgbm->setBlockSize(sgbmWinSize);
     int cn = left.channels();
-
-    sgbm->setP1(8 * cn*sgbmWinSize*sgbmWinSize);
-    sgbm->setP2(32 * cn*sgbmWinSize*sgbmWinSize);
+    sgbm->setP1(p1 * cn*sgbmWinSize*sgbmWinSize);
+    sgbm->setP2(p2 * cn*sgbmWinSize*sgbmWinSize);
     sgbm->setMinDisparity(0);
     sgbm->setNumDisparities(numberOfDisparities);
-    sgbm->setUniquenessRatio(0.1);
-    sgbm->setSpeckleWindowSize(30);//100
-    sgbm->setSpeckleRange(5);//32
-    sgbm->setDisp12MaxDiff(1);
-    //int alg = STEREO_SGBM;
-    //if (alg == STEREO_HH)
-    //    sgbm->setMode(cv::StereoSGBM::MODE_HH);
-    //else if (alg == STEREO_SGBM)c
-    //     sgbm->setMode(cv::StereoSGBM::MODE_SGBM);
-    //else if (alg == STEREO_3WAY)
-    //sgbm->setMode(cv::StereoSGBM::MODE_SGBM_3WAY);
+    sgbm->setUniquenessRatio(UniquenessRatio);
+    sgbm->setSpeckleWindowSize(SpeckleWindowSize);//100
+    sgbm->setSpeckleRange(SpeckleRange);//32
+    sgbm->setDisp12MaxDiff(setDisp12MaxDiff);
+    sgbm->setMode(cv::StereoSGBM::MODE_SGBM_3WAY);
     sgbm->compute(left, right, disp);
     Mat absdisp = abs(disp);
-    char aaa = -1;
+    Mat leftdpf = Mat::zeros(img_size, CV_32F);
+    absdisp.convertTo(leftdpf, CV_32F, 1.0/16);
+    imwrite("leftdpf.png",leftdpf);
 
-    cout<<"16S:"<<(double)absdisp.ptr<char>(100)[400]<<"tt"<<abs(aaa)<<endl;
-    //Mat leftdpf = disp;
-
-    Mat leftdpf = Mat::zeros(img_size, CV_8UC1);
-    cout<<"numberOfDisparities"<<numberOfDisparities<<endl;
-    absdisp.convertTo(leftdpf, CV_8U, 255/(numberOfDisparities*16.));
-
-
-    /*
-    Mat mat32f,mat8u;
-    leftdpf.convertTo(mat32f,CV_32F,1.0/255.0);
-    insertDepth32f(mat32f);
-    mat32f.convertTo(mat8u,CV_8U,255.0);
-    leftdpf = mat8u;
-    */
-      imwrite("leftdpf.png",leftdpf);
-        //disp2Depth(leftdpf,depth);
-    cout<<"8U"<<(double)leftdpf.ptr<uchar>(100)[400]<<endl;
 
     PointCloud<PointXYZRGB>::Ptr cloud_a(new PointCloud<PointXYZRGB>);
     PointCloud<PointXYZRGB> cloud_b;
@@ -326,17 +225,15 @@ int main()
     Mat V = Mat(4, 1, CV_64FC1);
     Mat pos = Mat(4, 1, CV_64FC1);
 
-    cout<<Q<<endl;
-    
-    for (unsigned int u = int(rowNumber*1/10); u < rowNumber*9/10; ++u)
+    for (unsigned int u = 0; u < rowNumber; ++u)
     {
-        for (unsigned int v = int(colNumber*1/10); v < colNumber*9/10; ++v)
+        for (unsigned int v = 0; v < colNumber; ++v)
         {
             //*unsigned int num = rowNumber*colNumber-(u*colNumber + v)-1;
             unsigned int num = u*colNumber + v;
             
-            double d = double(leftdpf.ptr<uchar>(u)[v]);
-            if((double)leftdpf.ptr<uchar>(u)[v] == 0 ||(double)leftdpf.ptr<uchar>(u)[v] == 8)
+            double d = double(leftdpf.ptr<float>(u)[v]);
+            if((double)leftdpf.ptr<float>(u)[v] == 0 ||(double)leftdpf.ptr<float>(u)[v] == 8)
                 continue;
 
             V.at<double>(0,0) = (double)(v);
@@ -348,12 +245,12 @@ int main()
             double X = pos.at<double>(0,0) / pos.at<double>(3,0);
     	      double Y = pos.at<double>(1,0) / pos.at<double>(3,0);
     	      double Z = pos.at<double>(2,0) / pos.at<double>(3,0);
-            if(Z>10)
+            if(Z>maxl*4)
                 continue;
             
             cloud_a->points[num].b = color.at<Vec3b>(u, v)[0];//[0]
-            cloud_a->points[num].g = color.at<Vec3b>(u, v)[0];//[1]
-            cloud_a->points[num].r = color.at<Vec3b>(u, v)[0];//[2]
+            cloud_a->points[num].g = color.at<Vec3b>(u, v)[1];//[1]
+            cloud_a->points[num].r = color.at<Vec3b>(u, v)[2];//[2]
 
             cloud_a->points[num].x = X;
             cloud_a->points[num].y = Y;
@@ -379,7 +276,7 @@ int main()
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("viewer"));
 
     viewer->addPointCloud(cloud);
-    //pcl::io::savePCDFile( "result.pcd", *tmp );
+    pcl::io::savePCDFile( "huace.pcd", *cloud );
     //viewer.runOnVisualizationThreadOnce(viewerOneOff);
     struct callback_args cb_args;  
     pcl::PointCloud<PointT>::Ptr clicked_points_3d(new pcl::PointCloud<PointT>);  
