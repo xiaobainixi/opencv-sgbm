@@ -113,7 +113,7 @@ void viewerOneOff(visualization::PCLVisualizer& viewer)
 
 int main()
 {
-    FileStorage calib_file = FileStorage("/home/l/tt/3dre/huacexiangji.yml", FileStorage::READ);
+    FileStorage calib_file = FileStorage("/home/l/tt/3dre/param.yml", FileStorage::READ);
       findRectificationMap(calib_file);
     Mat leftc =  imread( "/home/l/tt/3dre/SampleDataWithPOS/SampleDataWithPOS/l/3.jpg");  
     Mat rightc = imread( "/home/l/tt/3dre/SampleDataWithPOS/SampleDataWithPOS/r/3.jpg");
