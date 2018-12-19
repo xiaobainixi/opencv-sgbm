@@ -71,27 +71,3 @@ Q: !!opencv-matrix
    cols: 4
    dt: d
    data: [1., 0., 0., -2.0440189437866211e+03, 0., 1., 0., -1.0855935840606689e+03, 0.,0., 0., 2.3554840635596106e+03, 0., 0., 1.0001649605904515e-03, 0.]
-
-disp_min: 0
-disp_max: 255
-support_threshold     : 1.55
-support_texture       : 10
-candidate_stepsize    : 3
-incon_window_size     : 3
-incon_threshold       : 3
-incon_min_support     : 3
-add_corners           : 0
-grid_size             : 20
-beta                  : 0.02
-gamma                 : 10
-sigma                 : 1
-sradius               : 12
-match_texture         : 1 #纹理匹配
-lr_threshold          : 2
-speckle_sim_threshold : 1
-speckle_size          : 600
-ipol_gap_width        : 8000
-filter_median         : 0
-filter_adaptive_mean  : 1
-postprocess_only_left : 1
-subsampling           : 0
