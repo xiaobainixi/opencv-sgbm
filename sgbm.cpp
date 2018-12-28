@@ -6,7 +6,6 @@
 #include <opencv2/opencv.hpp>  
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/voxel_grid.h>
-#include "elas.h"
 #include <time.h>
 #include <math.h>
 #include <fstream>
